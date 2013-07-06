@@ -17,20 +17,32 @@ Pop-Location
 if (!$Env:HOME) { $Env:HOME = "$Env:HOMEDRIVE$Env:HOMEPATH" }
 if (!$Env:HOME) { $Env:HOME = "$Env:USERPROFILE" }
 
-Export-ModuleMember -Function @(
-  'Write-GitStatus', 
-  'Get-GitStatus', 
-  'Enable-GitColors', 
-  'Get-GitDirectory',
-  'GitTabExpansion',
-  'Get-AliasPattern',
-  'Start-SshAgent',
-  'Stop-SshAgent',
-  'Add-SshKey',
-  'tgit',
-  'Write-HgStatus',
-  'Get-HgStatus',
-  'HgTabExpansion',
-  'Get-MqPatches',
-  'PopulateHgCommands',
-  'IsHgOrGitDirectory')
+Get-TempEnv 'SSH_AGENT_PID'
+Get-TempEnv 'SSH_AUTH_SOCK'
+
+Export-ModuleMember `
+    -Alias @(
+        '??') `
+    -Function @(
+        'Invoke-NullCoalescing',
+        'Write-GitStatus',
+        'Write-Prompt',
+        'Get-GitStatus', 
+        'Enable-GitColors', 
+        'Get-GitDirectory',
+        'TabExpansion',
+        'Get-AliasPattern',
+        'Get-SshAgent',
+        'Start-SshAgent',
+        'Stop-SshAgent',
+        'Add-SshKey',
+        'Get-SshPath',
+        'Update-AllBranches',
+        'tgit',
+        'Get-TortoiseGitPath',
+        'Write-HgStatus',
+        'Get-HgStatus',
+        'HgTabExpansion',
+        'Get-MqPatches',
+        'PopulateHgCommands',
+        'IsHgOrGitDirectory')

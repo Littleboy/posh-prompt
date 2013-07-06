@@ -6,10 +6,14 @@ $global:PoshPromptSettings = New-Object PSObject -Property @{
     ShowUserLocationAsPrompt   = $true
     ShowUserLocationAsTitle    = $false
     ShowStatusWhenZero         = $false
-    EnablePromptStatus         = $true
+    EnablePromptStatus         = !$Global:GitMissing
     EnableFileStatus           = $true
     AutoRefreshIndex           = $true
     RepositoriesInWhichToDisableFileStatus = @( ) # Array of repository paths
+    EnableWindowTitle         = 'posh~prompt ~ '
+
+    # Tortoise
+    TortoiseGitPath = ${env:ProgramFiles} + "\TortoiseGit\bin\TortoiseProc.exe"
 
     # Debug
     Debug                      = $false
@@ -97,8 +101,5 @@ $global:PoshPromptSettings = New-Object PSObject -Property @{
     AppliedPatchForegroundColor   = [ConsoleColor]::DarkYellow
     AppliedPatchBackgroundColor   = $Host.UI.RawUI.BackgroundColor
     PatchSeparator                = ' › '
-    PatchSeparatorColor           = [ConsoleColor]::White 
-    
-    # Tortoise
-    TortoiseGitPath = ${env:ProgramFiles} + "\TortoiseGit\bin\TortoiseProc.exe"
+    PatchSeparatorColor           = [ConsoleColor]::White
 }

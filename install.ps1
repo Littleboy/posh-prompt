@@ -12,7 +12,7 @@ if(!(Test-Path $PROFILE)) {
 
 if(!(Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Warning 'Could not find git command. Please create a git alias or add %ProgramFiles%\Git\cmd to PATH.'
-	return
+    return
 }
 
 if(!(Get-Command hg -ErrorAction SilentlyContinue)) {

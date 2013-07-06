@@ -5,11 +5,11 @@ Import-Module .\posh-prompt
 
 # If module is installed in a default location ($env:PSModulePath),
 # use this instead (see about_Modules for more information):
-# Import-Module posh-hg
+# Import-Module posh-prompt
 
 
 # Set up a simple prompt, adding the hg/git prompt parts inside hg/git repos
-function prompt {
+function global:prompt {
     $realLASTEXITCODE = $LASTEXITCODE
     $s = $global:PoshPromptSettings
     
@@ -48,8 +48,10 @@ function prompt {
     
     # Git prompt
     1 {
-        Enable-GitColors
         Write-VcsStatus
+        Enable-GitColors
+        Pop-Location
+        #Start-SshAgent -Quiet
       }
     
     # Mercurial Prompt
@@ -63,26 +65,37 @@ function prompt {
     return "> "
 }
 
-if(Test-Path Function:\TabExpansion) {
-    $teBackup = 'posh-prompt_DefaultTabExpansion'
-    if(!(Test-Path Function:\$teBackup)) {
-        Rename-Item Function:\TabExpansion $teBackup
-    }
+$PowerTab_RegisterTabExpansion = Get-Command Register-TabExpansion -Module powertab -ErrorAction SilentlyContinue
+if ($PowerTab_RegisterTabExpansion)
+{
+    & $PowerTab_RegisterTabExpansion "git.exe" -Type Command {
+        param($Context, [ref]$TabExpansionHasOutput, [ref]$QuoteSpaces)  # 1:
 
-    # Set up tab expansion and include hg & git expansions
-    function TabExpansion($line, $lastWord) {
+        $line = $Context.Line
         $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
-        switch -regex ($lastBlock) {
-            # Execute Mercurial and TortoiseHG tab expansion
-            '(hg|thg) (.*)' { HgTabExpansion($lastBlock) }
+        $TabExpansionHasOutput.Value = $true
+        GitTabExpansion $lastBlock
+    }
+    return
+}
+
+if (Test-Path Function:\TabExpansion) {
+    Rename-Item Function:\TabExpansion TabExpansionBackup
+}
+
+function TabExpansion($line, $lastWord) {
+    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+
+    switch -regex ($lastBlock) {
+        # Execute Mercurial and TortoiseHG tab expansion
+        '(hg|thg) (.*)' { HgTabExpansion($lastBlock) }
             
-            # Execute git tab completion for all git-related commands
-            "^$(Get-AliasPattern git) (.*)" { GitTabExpansion $lastBlock }
-            "^$(Get-AliasPattern tgit) (.*)" { GitTabExpansion $lastBlock }
-            
-            # Fall back on existing tab expansion
-            default { & $teBackup $line $lastWord }
-        }
+        # Execute git tab completion for all git-related commands
+        "^$(Get-AliasPattern git) (.*)" { GitTabExpansion $lastBlock }
+        "^$(Get-AliasPattern tgit) (.*)" { GitTabExpansion $lastBlock }
+
+        # Fall back on existing tab expansion
+        default { if (Test-Path Function:\TabExpansionBackup) { TabExpansionBackup $line $lastWord } }
     }
 }
 

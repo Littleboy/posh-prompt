@@ -45,13 +45,22 @@ function Get-GitBranch($gitDir = $(Get-GitDirectory), [Diagnostics.Stopwatch]$sw
                 $r = '|BISECTING'
             }
 
-            $b = Coalesce-Args `
+            $b = Invoke-NullCoalescing `
                 { dbg 'Trying symbolic-ref' $sw; git symbolic-ref HEAD 2>$null } `
-                { '({0})' -f (Coalesce-Args `
+                { '({0})' -f (Invoke-NullCoalescing `
                     { dbg 'Trying describe' $sw; git describe --exact-match HEAD 2>$null } `
                     {
                         dbg 'Falling back on parsing HEAD' $sw
-                        $ref = Get-Content $gitDir\HEAD 2>$null
+                        $ref = $null
+
+                        if (Test-Path $gitDir\HEAD) {
+                            dbg 'Reading from .git\HEAD' $sw
+                            $ref = Get-Content $gitDir\HEAD 2>$null
+                        } else {
+                            dbg 'Trying rev-parse' $sw
+                            $ref = git rev-parse HEAD 2>$null
+                        }
+
                         if ($ref -match 'ref: (?<ref>.+)') {
                             return $Matches['ref']
                         } elseif ($ref -and $ref.Length -ge 7) {
@@ -200,7 +209,27 @@ function Get-AliasPattern($exe) {
 
 function setenv($key, $value) {
     [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::Process)
-    [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::User)
+    Set-TempEnv $key $value
+}
+
+function Get-TempEnv($key) {
+    $path = Join-Path ($Env:TEMP) ".ssh\$key.env"
+    if (Test-Path $path) {
+        $value =  Get-Content $path
+        [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::Process)
+    }
+}
+
+function Set-TempEnv($key, $value) {
+    $path = Join-Path ($Env:TEMP) ".ssh\$key.env"
+    if ($value -eq $null) {
+        if (Test-Path $path) {
+            Remove-Item $path
+        }
+    } else {
+        New-Item $path -Force -ItemType File > $null
+        $value > $path
+    }
 }
 
 # Retrieve the current SSH agent PID (or zero). Can be used to determine if there
@@ -214,7 +243,7 @@ function Get-SshAgent() {
         } else {
             setenv 'SSH_AGENT_PID', $null
             setenv 'SSH_AUTH_SOCK', $null
-    }
+        }
     }
 
     return 0
@@ -240,19 +269,25 @@ function Start-SshAgent([switch]$Quiet) {
     Add-SshKey
 }
 
+function Get-SshPath($File = 'id_rsa')
+{
+    $home = Resolve-Path (Invoke-NullCoalescing $Env:HOME ~)
+    Resolve-Path (Join-Path $home ".ssh\$File") -ErrorAction SilentlyContinue 2> $null
+}
+
 # Add a key to the SSH agent
 function Add-SshKey() {
     $sshAdd = Get-Command ssh-add -TotalCount 1 -ErrorAction SilentlyContinue
     if (!$sshAdd) { Write-Warning 'Could not find ssh-add'; return }
 
     if ($args.Count -eq 0) {
-        $sshPath = Resolve-Path ~/.ssh/id_rsa -ErrorAction SilentlyContinue
+        $sshPath = Get-SshPath
         if ($sshPath) { & $sshAdd $sshPath }
     } else {
         foreach ($value in $args) {
             & $sshAdd $value
         }
-}
+    }
 }
 
 # Stop a running SSH agent

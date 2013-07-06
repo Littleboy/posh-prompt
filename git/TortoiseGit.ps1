@@ -1,4 +1,14 @@
 # TortoiseGit 
+
+function private:Get-TortoiseGitPath {
+  if ((Test-Path "C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe") -eq $true) {
+    # TortoiseGit 1.8.0 renamed TortoiseProc to TortoiseGitProc.
+    return "C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe"
+  }
+
+  return "C:\Program Files\TortoiseGit\bin\TortoiseProc.exe"
+}
+
 function tgit {
    if($args) {
     if($args[0] -eq "help") {
@@ -15,7 +25,7 @@ function tgit {
     if($args.length -gt 1) {
       $args[1..$args.length] | % { $newArgs += $_ }
     }
-    
+
     & $Global:PoshPromptSettings.TortoiseGitPath $newArgs
   }
 }
